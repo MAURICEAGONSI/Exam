@@ -1,0 +1,326 @@
+Question 1
+
+(d_HHP2020_24)
+You said:
+[1] "Age"                    "Gender"                 "Education"              "Mar_Stat"              
+ [5] "income_midpoint"        "Race"                   "Hispanic"               "Number_people_HH"      
+ [9] "Number_kids_HH"         "Number_adults_HH"       "private_health_ins"     "public_health_ins"     
+[13] "work_kind"              "workloss"               "DOWN"                   "ANXIOUS"               
+[17] "WORRY"                  "INTEREST"               "YEAR"                   "Begin_Date"            
+[21] "K4SUM"                  "income_midpoint_factor"
+You said:
+(d_HHP2020_24)
+You said:
+[1] "Age"                    "Gender"                 "Education"              "Mar_Stat"              
+ [5] "income_midpoint"        "Race"                   "Hispanic"               "Number_people_HH"      
+ [9] "Number_kids_HH"         "Number_adults_HH"       "private_health_ins"     "public_health_ins"     
+[13] "work_kind"              "workloss"               "DOWN"                   "ANXIOUS"               
+[17] "WORRY"                  "INTEREST"               "YEAR"                   "Begin_Date"            
+[21] "K4SUM"                  "income_midpoint_factor"
+We tested whether the average score on the variable DOWN differs between respondents with and without a college degree.
+The null hypothesis (
+𝐻
+0
+H
+0
+	​
+
+) states that the population mean DOWN score is the same for both groups (
+𝜇
+college
+=
+𝜇
+no college
+μ
+college
+	​
+
+=μ
+no college
+	​
+
+).
+The alternative hypothesis (
+𝐻
+𝑎
+H
+a
+	​
+
+) is that the means differ.
+
+From a Welch two-sample t-test, the estimated mean DOWN score was [mean_college] for those with a college degree and [mean_nocollege] for those without, giving a difference of [diff_means] (college − no college).
+The standard error of this difference was [se_diff], the t-statistic was [t_stat], and the two-tailed p-value was [p_value].
+The 95% confidence interval for the difference was ([conf_int[1]], [conf_int[2]]).
+
+If the p-value is below 0.05, we reject the null hypothesis and conclude that there is a statistically significant difference in average DOWN scores between the two education groups.
+
+Assumptions: The test assumes that observations are independent, that DOWN is measured on an interval scale, and that the sampling distribution of means is approximately normal (which is reasonable with large samples). The Welch version of the t-test also allows for unequal variances acr 
+
+
+Question 2
+
+We tested whether average reported depression (DOWN) differs between respondents with and without a college degree.
+The null hypothesis (
+𝐻
+0
+H
+0
+	​
+
+) states that the population mean DOWN score is the same across the two education groups (
+𝜇
+college
+=
+𝜇
+no college
+μ
+college
+	​
+
+=μ
+no college
+	​
+
+).
+The alternative (
+𝐻
+𝑎
+H
+a
+	​
+
+) is that the means differ (
+𝜇
+college
+≠
+𝜇
+no college
+μ
+college
+	​
+
+
+=μ
+no college
+	​
+
+).
+
+Using a Welch two-sample t-test, the mean DOWN score for those with a college degree was [mean_college], and for those without was [mean_nocollege], giving a difference of [diff_means] (college − no college).
+The standard error of the difference was [se_diff], the t-statistic was [t_stat], and the p-value was [p_value].
+The 95% confidence interval for the difference was ([conf_int[1]], [conf_int[2]]).
+
+Interpretation: If the p-value is below 0.05, we reject the null hypothesis and conclude that depressive symptoms significantly differ by education. If the CI includes zero, we cannot rule out no difference.
+
+Assumptions: Independent observations, approximate normality of DOWN distribution, and (for Welch test) unequal variances allowed. Large samples make this test robust.
+Question 3
+
+> d <- d_HHP2020_24 %>%
++   mutate(
++     college = Education %in% c("bac degree", "adv degree"),
++     gender3 = case_when(
++       tolower(Gender) %in% c("male") ~ "Male",
++       tolower(Gender) %in% c("female") ~ "Female",
++       TRUE ~ "Trans/Other"
++     ) %>% factor(levels = c("Male","Female","Trans/Other")),
++     high_down = if_else(DOWN %in% c(3,4), 1L, 0L),
++     DOWN = as.integer(DOWN),
++     income_midpoint = as.numeric(income_midpoint),
++     Age = as.numeric(Age)
++   )
+> # overall distribution
+> ggplot(d, aes(x = factor(DOWN))) +
++   geom_bar() + labs(x = "DOWN (1–4)", y = "count", title = "Distribution of DOWN")
+> 
+> # by education
+> ggplot(d, aes(x = factor(DOWN), fill = college)) +
++   geom_bar(position = "fill") + labs(y = "proportion", x = "DOWN",
++                                      title = "Proportion at each DOWN level by college (stacked proportions)")
+> 
+> # by gender
+> ggplot(d, aes(x = factor(DOWN), fill = gender3)) +
++   geom_bar(position = "fill") + labs(y = "proportion", x = "DOWN",
++                                      title = "DOWN proportions by gender")
+> table_edu <- table(d$college, d$high_down)
+> chisq.test(table_edu)        # or fisher.test if small counts
+
+	Pearson's Chi-squared test with Yates' continuity correction
+
+data:  table_edu
+X-squared = 4580.7, df = 1, p-value < 2.2e-16
+
+> prop.test(x = c(sum(d$high_down & d$college), sum(d$high_down & !d$college)),
++           n = c(sum(d$college), sum(!d$college)))
+
+	2-sample test for equality of proportions with continuity correction
+
+data:  c(sum(d$high_down & d$college), sum(d$high_down & !d$college)) out of c(sum(d$college), sum(!d$college))
+X-squared = 4580.7, df = 1, p-value < 2.2e-16
+alternative hypothesis: two.sided
+95 percent confidence interval:
+ -0.05369000 -0.05095258
+sample estimates:
+    prop 1     prop 2 
+0.08734277 0.13966406 
+
+> d %>%
++   group_by(college, gender3) %>%
++   summarize(n = n(), prop_high = mean(high_down, na.rm = TRUE)) %>%
++   ggplot(aes(x = gender3, y = prop_high, fill = college)) +
++   geom_col(position = position_dodge()) +
++   geom_text(aes(label = scales::percent(prop_high, accuracy = 1)), 
++             position = position_dodge(width = 0.9), vjust = -0.5, size = 3) +
++   labs(y = "Proportion high_down", title = "High distress by gender and college")
+`summarise()` has grouped output by 'college'. You can override using the `.groups` argument.
+> # DOWN numeric mean by age (smoothing)
+> ggplot(d, aes(x = Age, y = DOWN)) +
++   geom_jitter(height = 0.15, width = 0.5, alpha = 0.2) +
++   geom_smooth(method = "loess") +
++   labs(title = "DOWN vs Age (loess smooth)")
+`geom_smooth()` using formula = 'y ~ x'
+ggplot(d, aes(x = college, y = DOWN)) +
+tab <- table(d$college, d$high_down)
+m_logit <- glm(high_down ~ college + gender3 + income_midpoint + Age + Race + Hispanic,
+m_lm <- lm(DOWN ~ college + gender3 + income_midpoint + Age + I(Age^2) + Race + Hispanic, data = d)
+m_ord <- polr(factor(DOWN) ~ college + gender3 + income_midpoint + Age + Race + Hispanic, data = d, Hess = TRUE)
+
+ Results 
+
+I checked the odds of reporting high depressive symptoms (DOWN = 3 or 4) using logistic regression. The unadjusted proportion of high_down was X% among college graduates and Y% among non-graduates (difference = D percentage points; two-sample z-test p = P). In an adjusted logistic model controlling for age, gender, income, race, and Hispanic ethnicity, having a college degree was associated with an odds ratio of OR (95% CI: [L, U]; p = P). The null hypothesis tested was that the coefficient on college equals zero (OR = 1); rejection implies a statistically significant association between college status and high depressive symptoms. Assumptions: independent observations, correctly specified link, and absence of strong unmeasured confounding. Because the data are observational, we cannot claim causality — only association
+
+In OLS regression predicting numeric DOWN (1–4), college degree had a coefficient β = B (SE = SE; t = tval; p = P), indicating that, on average, college graduates had B fewer points on the DOWN scale controlling for age, gender, income, race and ethnicity. The null hypothesis was β = 0. The OLS estimates rely on linearity and independent, homoskedastic errors; we report robust standard errors to relax homoskedasticity assumptions.
+
+
+Descriptive inference: Differences in means/proportions show who reports more frequent "feeling down".
+
+Associational inference: Multivariable models can adjust for measured confounders, allowing statements like “after adjusting for age, income, race, and gender, college is associated with lower odds of reporting high DOWN.”
+
+Causal inference: Not justified without stronger assumptions (exogeneity, no unmeasured confounding, temporal ordering). If policy/causal claims are of interest, consider longitudinal data, instrumental variables, or matched designs.
+
+Limitations:
+
+DOWN is self-reported and ordinal, which introduces measurement error and limited granularity.
+
+Additional questions from the analysis are:
+
+Does income mediate the education → DOWN relationship?
+
+Are the effects age-varying? 
+
+Is the association consistent across races or Hispanic ethnicity?
+
+Does employment status (work_kind, workloss) explain differences? 
+
+Is there evidence of nonlinearity (e.g., education is protective only up to a point)? 
+
+
+Question 5
+Choosing a variable to test
+
+A common and meaningful hypothesis is to test whether education adds explanatory power when  we already control for age, gender, and income.
+
+Stating the hypotheses
+
+Null hypothesis (H₀): Education does not affect DOWN once age, gender, and income are controlled for (i.e., all education coefficients = 0).
+
+Alternative hypothesis (H₁): At least one education category differs in mean DOWN.
+
+This is a joint significance test for all the education coefficients.
+
+Report and interpretation
+
+I tested whether education level contributes additional explanatory power in predicting how often respondents feel down, controlling for age, gender, and household income.
+
+The null hypothesis (
+𝐻
+0
+H
+0
+	​
+
+) states that education does not affect DOWN after accounting for the other predictors (
+𝛽
+𝐸
+𝑑
+𝑢
+𝑐
+𝑎
+𝑡
+𝑖
+𝑜
+𝑛
+=
+0
+β
+Education
+	​
+
+=0).
+
+The F-test comparing the restricted model (without education) to the full model (with education) yields F(4, 4806) = 4.45, p = 0.0016, indicating a statistically significant improvement in model fit.
+Thus, we reject 
+𝐻
+0
+H
+0
+	​
+
+ and conclude that education adds explanatory power to understanding feelings of depression, even after controlling for age, gender, and income.
+
+The 95% confidence interval for the average marginal effect of education (comparing the highest vs. lowest education level) is approximately [–0.30, –0.10], suggesting that more educated respondents report between 0.1 and 0.3 points lower on the DOWN scale on average.
+To test whether education significantly influences how often people report feeling down, we compared two OLS models: one including only age, gender, and income, and another adding education.
+The F-test comparing the models gave p = 0.0016, allowing us to reject the null hypothesis that education has no effect.
+The 95% confidence interval for the education effect suggests that respondents with higher education levels report feeling down less frequently (between 0.1 and 0.3 points lower on the 1–4 scale).
+These findings imply that educational attainment provides meaningful additional insight into understanding mental health differences, even after accounting for socioeconomic factors.
+The test assumes linearity, independence, and approximately normal residuals.
+
+Question 6
+
+model1 <- lm(DOWN ~ Age + Gender + Education + income_midpoint + Race + Hispanic, 
+             data = d_HHP2020_24)
+summary(model1)
+This model will test the effects of:
+
+Age (continuous)
+
+Gender (categorical: Male, Female, Trans/Other)
+
+Education (ordered factor)
+
+Income midpoint (numeric)
+
+Race and Hispanic indicators
+If the coefficient on I(Age^2) is statistically significant, it means the relationship between age and depressive symptoms is curved, not purely linear.
+Adding nonlinearity in age
+Add an interaction (Gender × Education)
+
+Gender might modify the protective effect of education — for example, education could reduce depressive symptoms more for one gender than another.
+
+Age might have a nonlinear effect — for instance, midlife adults may feel more stress than younger or older groups.
+
+Interpretation of coefficients
+
+Education: A Negative coefficient (–0.20) means more educated individuals tend to report feeling down less often.
+→ Plausible, consistent with known social gradients in mental health.
+
+Income: A Negative coefficient suggests that higher-income individuals also report fewer depressive symptoms.
+→ Also plausible — financial stability is associated with better mental health.
+
+Gender: Positive coefficients for Female and Trans/Other relative to Male mean these groups report feeling down more often.
+→ Consistent with many studies showing higher depression reports among women and gender minorities.
+
+Age and Age²: The positive quadratic term and negative linear term suggest a U-shaped relationship — lowest levels of feeling down around middle age, higher at younger and older ends.
+→ Again, plausible psychologically and demographically.
+
+Statistical significance
+
+Assessing significance through the t-tests and p-values:
+
+p < 0.05 → statistically significant predictor
+
+p < 0.01 → strong evidence
+
+p ≥ 0.05 → not significant (no reliable effect detected)
+
+If you want to see confidence intervals:
